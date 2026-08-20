@@ -31,6 +31,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-insecure-change-me')
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 3600
 
+# Proteção: SECRET_KEY deve ser definida em produção
+if os.environ.get('FLASK_ENV') == 'production' and app.config['SECRET_KEY'] == 'dev-insecure-change-me':
+    raise RuntimeError("SECRET_KEY não configurada. Use: fly secrets set SECRET_KEY=$(python -c 'import secrets; print(secrets.token_hex(32))')")
+
 # Rate limiting — proteção contra abuso
 limiter = Limiter(
     get_remote_address,
