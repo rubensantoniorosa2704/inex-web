@@ -187,13 +187,14 @@ footer {
 .pagination {
     display: flex;
     justify-content: center;
-    gap: 0.5rem;
-    margin: 1.5rem 0;
-    font-size: 0.9rem;
+    gap: 0.3rem;
+    margin: 1.5rem auto;
+    max-width: 30rem;
+    font-size: 0.85rem;
 }
 
 .pagination a, .pagination strong {
-    padding: 0.3rem 0.6rem;
+    padding: 0.25rem 0.5rem;
     border: 1px solid var(--border);
     border-radius: 2px;
     text-decoration: none;
