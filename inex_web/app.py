@@ -149,6 +149,9 @@ def home():
 def busca_page():
     q = request.args.get("q", "").strip()
     if not q:
+        # HTMX: retorna fragmento vazio (limpa os resultados)
+        if request.headers.get("HX-Request"):
+            return ""
         return render_template("busca.html", resultados={"ies": [], "cursos": [], "has_more": False, "next_page": 1, "q": ""}, q="")
 
     # Validar paginação
