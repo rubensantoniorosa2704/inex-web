@@ -42,9 +42,9 @@
         {% endif %}
 
         {% if igc|length > 1 %}
+        {{ line_chart(igc, 'ano', 'igc_continuo', label='Evolucao IGC') }}
         <details>
-            <summary>Ver evolução histórica</summary>
-            {{ line_chart(igc, 'ano', 'igc_continuo', label='Evolucao IGC') }}
+            <summary>Ver tabela</summary>
             <table>
                 <thead><tr><th>Ano</th><th>Nota (IGC Contínuo)</th><th>Conceito (Faixa)</th><th>Cursos avaliados</th></tr></thead>
                 <tbody>

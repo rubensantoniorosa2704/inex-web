@@ -149,7 +149,7 @@ def home():
 def busca_page():
     q = request.args.get("q", "").strip()
     if not q:
-        return render_template("home.html")
+        return render_template("busca.html", resultados={"ies": [], "cursos": [], "has_more": False, "next_page": 1, "q": ""}, q="")
 
     # Validar paginação
     try:
