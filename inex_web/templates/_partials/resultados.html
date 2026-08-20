@@ -43,10 +43,7 @@
 
 {% if resultados.has_more %}
 <p class="load-more">
-    <a href="/busca?q={{ q }}&p={{ resultados.next_page }}"
-       hx-get="/busca?q={{ q }}&p={{ resultados.next_page }}"
-       hx-target="#resultados"
-       hx-swap="innerHTML">
+    <a href="/busca?q={{ q }}&p={{ resultados.next_page }}">
         Mais resultados
     </a>
 </p>

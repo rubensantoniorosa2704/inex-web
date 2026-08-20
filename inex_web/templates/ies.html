@@ -205,15 +205,32 @@
                 name="q_b"
                 placeholder="Digite o nome da outra faculdade..."
                 autocomplete="off"
-                hx-get="/busca_comparar?a={{ ies.co_ies }}&tipo=ies"
-                hx-trigger="keyup changed delay:300ms"
-                hx-target="#comparar-resultados"
+                id="compare-input"
             >
             <noscript>
                 <p class="meta">Ou acesse diretamente: <code>/comparar?a={{ ies.co_ies }}&b=CODIGO</code></p>
             </noscript>
         </form>
         <div id="comparar-resultados"></div>
+        <script>
+        (function() {
+            var input = document.getElementById('compare-input');
+            var target = document.getElementById('comparar-resultados');
+            var timer;
+            if (!input || !target) return;
+            input.addEventListener('input', function() {
+                clearTimeout(timer);
+                var q = input.value.trim();
+                if (q.length < 2) { target.innerHTML = ''; return; }
+                timer = setTimeout(function() {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', '/busca_comparar?q_b=' + encodeURIComponent(q) + '&a={{ ies.co_ies }}');
+                    xhr.onload = function() { if (xhr.status === 200) target.innerHTML = xhr.responseText; };
+                    xhr.send();
+                }, 300);
+            });
+        })();
+        </script>
     </section>
 
 </article>

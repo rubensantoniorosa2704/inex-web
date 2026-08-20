@@ -9,12 +9,32 @@
 {% block content %}
 <form action="/busca" method="get" class="search-form">
     <input type="search" name="q" value="{{ q }}" placeholder="Nome da faculdade..."
-           hx-get="/busca" hx-trigger="keyup changed delay:300ms, search"
-           hx-target="#resultados" hx-push-url="false">
+           id="search-input">
     <noscript><button type="submit">Buscar</button></noscript>
 </form>
 
 <div id="resultados">
     {% include "_partials/resultados.html" %}
 </div>
+
+<script>
+(function() {
+    var input = document.getElementById('search-input');
+    var target = document.getElementById('resultados');
+    var timer;
+    if (!input || !target) return;
+    input.addEventListener('input', function() {
+        clearTimeout(timer);
+        var q = input.value.trim();
+        if (q.length < 2) { target.innerHTML = ''; return; }
+        timer = setTimeout(function() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/busca?q=' + encodeURIComponent(q));
+            xhr.setRequestHeader('HX-Request', 'true');
+            xhr.onload = function() { if (xhr.status === 200) target.innerHTML = xhr.responseText; };
+            xhr.send();
+        }, 300);
+    });
+})();
+</script>
 {% endblock %}
