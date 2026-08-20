@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Sobre{% endblock %}
+
+{% block content %}
+<article>
+    <h1>Sobre o INEX</h1>
+
+    <p>
+        O INEX é um portal gratuito e de código aberto que facilita o acesso
+        aos indicadores de qualidade do ensino superior brasileiro.
+    </p>
+
+    <p>
+        Os dados são derivados dos microdados públicos do
+        <a href="https://www.gov.br/inep" target="_blank" rel="noopener">INEP (Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira)</a>,
+        órgão vinculado ao Ministério da Educação.
+    </p>
+
+    <h2>Indicadores disponíveis</h2>
+
+    <dl>
+        <dt><a href="https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-estatisticas-e-indicadores/indicadores-de-qualidade-da-educacao-superior/indice-geral-de-cursos-igc" target="_blank" rel="noopener">IGC — Índice Geral de Cursos</a></dt>
+        <dd>Nota geral da instituição, de 1 a 5. Combina resultados do ENADE, corpo docente e pós-graduação.</dd>
+
+        <dt><a href="https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-estatisticas-e-indicadores/indicadores-de-qualidade-da-educacao-superior/conceito-enade" target="_blank" rel="noopener">ENADE — Exame Nacional de Desempenho dos Estudantes</a></dt>
+        <dd>Prova aplicada aos concluintes de graduação. Avalia formação geral e componente específico.</dd>
+
+        <dt><a href="https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-estatisticas-e-indicadores/indicadores-de-qualidade-da-educacao-superior/conceito-preliminar-de-curso-cpc" target="_blank" rel="noopener">CPC — Conceito Preliminar de Curso</a></dt>
+        <dd>Nota por curso (1 a 5). Combina ENADE, IDD, corpo docente e infraestrutura.</dd>
+
+        <dt><a href="https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-estatisticas-e-indicadores/indicadores-de-qualidade-da-educacao-superior/indicador-de-diferenca-entre-os-desempenhos-observado-e-esperado-idd" target="_blank" rel="noopener">IDD — Indicador de Diferença entre Desempenhos</a></dt>
+        <dd>Mede o "valor agregado" — quanto o curso melhorou o desempenho do aluno em relação ao esperado.</dd>
+
+        <dt><a href="https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-estatisticas-e-indicadores/censo-da-educacao-superior" target="_blank" rel="noopener">Censo da Educação Superior</a></dt>
+        <dd>Dados anuais de vagas, matrículas, ingressantes, concluintes e corpo docente.</dd>
+    </dl>
+
+    <h2>Cobertura temporal</h2>
+
+    <ul>
+        <li>ENADE: 2004–2023</li>
+        <li>CPC: 2007–2023</li>
+        <li>IDD: 2016–2023</li>
+        <li>IGC: 2017–2023</li>
+        <li>Censo: 2009–2024</li>
+    </ul>
+
+    <h2>Código-fonte</h2>
+
+    <p>Todo o projeto é open source:</p>
+
+    <ul>
+        <li><a href="https://github.com/rubensantoniorosa2704/inex-ingest" target="_blank" rel="noopener">inex-ingest</a> — CLI em Go que baixa os microdados do INEP</li>
+        <li><a href="https://github.com/rubensantoniorosa2704/inex-pipelines" target="_blank" rel="noopener">inex-pipelines</a> — Pipelines ETL em Python que transformam os dados brutos</li>
+        <li><a href="https://github.com/rubensantoniorosa2704/inex-web" target="_blank" rel="noopener">inex-web</a> — Este portal (Flask + DuckDB + HTMX)</li>
+    </ul>
+
+    <h2>Licenças</h2>
+
+    <ul>
+        <li><strong>Código:</strong> <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT</a></li>
+        <li><strong>Dados derivados:</strong> <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></li>
+        <li><strong>Dados originais:</strong> públicos, publicados pelo INEP sob a Lei de Acesso à Informação</li>
+    </ul>
+
+    <h2>Aviso</h2>
+
+    <p>
+        Este portal não é afiliado ao INEP ou ao MEC. Os dados são processados
+        automaticamente e podem conter erros. Para dados oficiais, consulte
+        <a href="https://www.gov.br/inep" target="_blank" rel="noopener">gov.br/inep</a>.
+    </p>
+
+    <h2>Contato</h2>
+
+    <p>
+        Dúvidas, sugestões ou correções:
+        <a href="mailto:rubensrosaneto27@gmail.com">rubensrosaneto27@gmail.com</a>
+    </p>
+</article>
+{% endblock %}

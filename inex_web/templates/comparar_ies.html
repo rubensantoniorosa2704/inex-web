@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Comparar: {{ ies_a.no_ies_atual }} vs {{ ies_b.no_ies_atual }}{% endblock %}
+{% block robots_meta %}<meta name="robots" content="noindex">{% endblock %}
+
+{% block breadcrumb %}
+<a href="/">Início</a> / <strong>Comparação de instituições</strong>
+{% endblock %}
+
+{% block content %}
+<article>
+    <h1>Comparativo</h1>
+
+    <table class="compare-table">
+        <thead>
+            <tr>
+                <th></th>
+                <th>{{ ies_a.no_ies_atual }}</th>
+                <th>{{ ies_b.no_ies_atual }}</th>
+            </tr>
+            <tr>
+                <th></th>
+                <td class="meta">{{ ies_a.no_municipio }}/{{ ies_a.sg_uf }}</td>
+                <td class="meta">{{ ies_b.no_municipio }}/{{ ies_b.sg_uf }}</td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>Tipo</th>
+                <td>{{ ies_a.org_academica_atual }}</td>
+                <td>{{ ies_b.org_academica_atual }}</td>
+            </tr>
+            <tr>
+                <th>Categoria</th>
+                <td>{{ ies_a.categoria_adm_atual }}</td>
+                <td>{{ ies_b.categoria_adm_atual }}</td>
+            </tr>
+
+            {% if igc_a and igc_b %}
+            <tr><th colspan="3" class="section-header">Nota geral (IGC)</th></tr>
+            <tr>
+                <th>Conceito</th>
+                <td>{{ faixa_badge(igc_a[-1].igc_faixa) if igc_a else "—" }}</td>
+                <td>{{ faixa_badge(igc_b[-1].igc_faixa) if igc_b else "—" }}</td>
+            </tr>
+            <tr>
+                <th>Nota contínua</th>
+                <td>{{ "%.3f"|format(igc_a[-1].igc_continuo) if igc_a else "—" }}</td>
+                <td>{{ "%.3f"|format(igc_b[-1].igc_continuo) if igc_b else "—" }}</td>
+            </tr>
+            <tr>
+                <th>Cursos avaliados</th>
+                <td>{{ igc_a[-1].qt_cursos_cpc if igc_a else "—" }}</td>
+                <td>{{ igc_b[-1].qt_cursos_cpc if igc_b else "—" }}</td>
+            </tr>
+            {% endif %}
+
+            {% if censo_a and censo_b %}
+            <tr><th colspan="3" class="section-header">Tamanho ({{ censo_a[-1].ano }})</th></tr>
+            <tr>
+                <th>Cursos</th>
+                <td>{{ censo_a[-1].cursos }}</td>
+                <td>{{ censo_b[-1].cursos }}</td>
+            </tr>
+            <tr>
+                <th>Matrículas</th>
+                <td>{{ "{:,}".format(censo_a[-1].matriculas) }}</td>
+                <td>{{ "{:,}".format(censo_b[-1].matriculas) }}</td>
+            </tr>
+            <tr>
+                <th>Ingressantes</th>
+                <td>{{ "{:,}".format(censo_a[-1].ingressantes) }}</td>
+                <td>{{ "{:,}".format(censo_b[-1].ingressantes) }}</td>
+            </tr>
+            <tr>
+                <th>Concluintes</th>
+                <td>{{ "{:,}".format(censo_a[-1].concluintes) }}</td>
+                <td>{{ "{:,}".format(censo_b[-1].concluintes) }}</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <p class="meta">
+        <a href="/ies/{{ ies_a.co_ies }}">Ver {{ ies_a.no_ies_atual }}</a> ·
+        <a href="/ies/{{ ies_b.co_ies }}">Ver {{ ies_b.no_ies_atual }}</a>
+    </p>
+</article>
+{% endblock %}

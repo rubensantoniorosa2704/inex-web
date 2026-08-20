@@ -1,0 +1,57 @@
+{% if resultados.ies or resultados.cursos %}
+
+{% if resultados.ies %}
+<h3>Instituições</h3>
+<ul class="results-list">
+    {% for r in resultados.ies %}
+    <li>
+        <a href="/ies/{{ r.co_ies }}">
+            <strong>{{ r.nome }}</strong>
+            {% if r.sigla %}<small>({{ r.sigla }})</small>{% endif %}
+            {% if r.igc_faixa %}{{ faixa_badge(r.igc_faixa) }}{% endif %}
+            <span class="meta">
+                {{ r.org }} · {{ r.municipio }}/{{ r.uf }}
+            </span>
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if resultados.cursos %}
+<h3>Cursos</h3>
+<ul class="results-list">
+    {% for r in resultados.cursos %}
+    <li>
+        <a href="/ies/{{ r.co_ies }}/curso/{{ r.co_curso }}">
+            <strong>{{ r.nome|title }}</strong>
+            {% if r.nota %}{{ faixa_badge((r.nota / 20)|round(1)) }}{% endif %}
+            <span class="meta">
+                {{ r.sigla or '' }} · {{ r.municipio }}/{{ r.uf }}
+                {% if r.nota %}
+                · Nota {{ "%.1f"|format(r.nota) }}
+                {% if r.percentil is not none %}
+                    (top {{ (100 - r.percentil)|round|int }}%)
+                {% endif %}
+                {% endif %}
+            </span>
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if resultados.has_more %}
+<p class="load-more">
+    <a href="/busca?q={{ q }}&p={{ resultados.next_page }}"
+       hx-get="/busca?q={{ q }}&p={{ resultados.next_page }}"
+       hx-target="#resultados"
+       hx-swap="innerHTML">
+        Mais resultados
+    </a>
+</p>
+{% endif %}
+
+{% elif q is defined and q %}
+<p>Nenhum resultado encontrado para "{{ q }}".</p>
+{% endif %}

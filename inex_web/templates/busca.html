@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Busca: {{ q }}{% endblock %}
+{% block robots_meta %}<meta name="robots" content="noindex">{% endblock %}
+
+{% block breadcrumb %}
+<a href="/">Início</a> / <strong>Busca: {{ q }}</strong>
+{% endblock %}
+
+{% block content %}
+<form action="/busca" method="get" class="search-form">
+    <input type="search" name="q" value="{{ q }}" placeholder="Nome da faculdade..."
+           hx-get="/busca" hx-trigger="keyup changed delay:300ms, search"
+           hx-target="#resultados" hx-push-url="false">
+    <noscript><button type="submit">Buscar</button></noscript>
+</form>
+
+<div id="resultados">
+    {% include "_partials/resultados.html" %}
+</div>
+{% endblock %}

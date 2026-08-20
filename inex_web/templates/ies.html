@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}{{ ies.no_ies_atual }}{% endblock %}
+{% block description %}{{ ies.no_ies_atual }} e boa? Veja a nota oficial do MEC, comparativo com outras faculdades e historico de qualidade. {{ ies.no_municipio }}/{{ ies.sg_uf }}.{% endblock %}
+
+{% block breadcrumb %}
+<a href="/">Início</a> / <strong>{{ ies.no_ies_atual }}</strong>
+{% endblock %}
+
+{% block content %}
+<article class="ies-page">
+    <header>
+        <h1>{{ ies.no_ies_atual }}</h1>
+        <p class="meta">
+            {{ ies.org_academica_atual }} ·
+            {{ ies.no_municipio }}/{{ ies.sg_uf }} ·
+            {{ ies.categoria_adm_atual }}
+        </p>
+    </header>
+
+    {# ── IGC ────────────────────────────────────────────────────── #}
+    {% if igc %}
+    <section>
+        <h2>Nota geral da instituição</h2>
+        {% set ultimo_igc = igc[-1] %}
+        <p class="destaque">
+            {{ faixa_badge(ultimo_igc.igc_faixa) }}
+            <strong>{{ ultimo_igc.igc_faixa }}/5</strong>
+            — avaliação de {{ ultimo_igc.ano }}
+        </p>
+        <p>
+            Essa nota (chamada IGC pelo MEC) resume a qualidade de todos os cursos
+            da instituição. Vai de 1 (insuficiente) a 5 (excelência).
+            No último triênio, {{ ultimo_igc.qt_cursos_cpc }} cursos foram avaliados.
+        </p>
+
+        {% if ranking %}
+        <p>
+            No estado de {{ ies.sg_uf }}, esta instituição ocupa a
+            <strong>{{ ranking.posicao }}ª posição entre {{ ranking.total }} avaliadas</strong>
+            ({{ ranking.ano }}).
+        </p>
+        {% endif %}
+
+        {% if igc|length > 1 %}
+        <details>
+            <summary>Ver evolução histórica</summary>
+            {{ line_chart(igc, 'ano', 'igc_continuo', label='Evolucao IGC') }}
+            <table>
+                <thead><tr><th>Ano</th><th>Nota (IGC Contínuo)</th><th>Conceito (Faixa)</th><th>Cursos avaliados</th></tr></thead>
+                <tbody>
+                {% for g in igc|reverse %}
+                <tr>
+                    <td>{{ g.ano }}</td>
+                    <td>{{ "%.3f"|format(g.igc_continuo) }}</td>
+                    <td>{{ faixa_badge(g.igc_faixa) }}</td>
+                    <td>{{ g.qt_cursos_cpc }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </details>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {# ── ENADE ──────────────────────────────────────────────────── #}
+    {% if enade %}
+    <section>
+        <h2>Notas dos cursos</h2>
+        <p>
+            Desempenho dos alunos no ENADE (prova do MEC aplicada aos formandos).
+            Escala de 0 a 100 — quanto maior, melhor.
+            Mostrando a avaliação mais recente de cada curso.
+        </p>
+
+        {% set chart_data = [] %}
+        {% for e in enade %}
+            {% if e.nt_ger_media %}
+                {% set _ = chart_data.append({'label': (e.no_curso or ('Grupo ' ~ e.co_grupo))|truncate(25)|title, 'value': e.nt_ger_media}) %}
+            {% endif %}
+        {% endfor %}
+        {% if chart_data %}
+        {{ bar_chart_horizontal(chart_data, 'label', 'value', max_val=100.0, color='#333') }}
+        {% endif %}
+
+        <details>
+            <summary>Ver tabela</summary>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Curso</th>
+                        <th>Ano da prova</th>
+                        <th>Nota (0-100)</th>
+                        <th>Posição no Brasil</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for e in enade %}
+                <tr>
+                    <td>
+                        <a href="/ies/{{ ies.co_ies }}/curso/{{ e.co_curso }}">
+                            {{ (e.no_curso or ("Grupo " ~ e.co_grupo))|title }}
+                        </a>
+                    </td>
+                    <td>{{ e.ano }}</td>
+                    <td>{{ "%.1f"|format(e.nt_ger_media) if e.nt_ger_media else "—" }}</td>
+                    <td>
+                        {% if e.percentil_grupo is not none %}
+                        top {{ (100 - e.percentil_grupo)|round|int }}%
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </details>
+
+        <p><a href="/ies/{{ ies.co_ies }}/cursos">Ver histórico completo de todos os cursos →</a></p>
+    </section>
+    {% endif %}
+
+    {# ── CPC ────────────────────────────────────────────────────── #}
+    {% if cpc %}
+    <section>
+        <h2>Conceito dos cursos (CPC)</h2>
+        <p>
+            O CPC é a nota oficial do MEC por curso, de 1 a 5.
+            Combina resultado dos alunos, corpo docente e infraestrutura.
+            Mostrando a avaliação mais recente de cada área.
+        </p>
+
+        {% set cpc_recentes = [] %}
+        {% set cpc_seen = [] %}
+        {% for c in cpc %}
+            {% if c.area_avaliacao not in cpc_seen and c.cpc_continuo and cpc_recentes|length < 8 %}
+                {% set _ = cpc_recentes.append({'label': c.area_avaliacao|title|truncate(25), 'value': c.cpc_continuo}) %}
+                {% set _ = cpc_seen.append(c.area_avaliacao) %}
+            {% endif %}
+        {% endfor %}
+        {% if cpc_recentes %}
+        {{ bar_chart_horizontal(cpc_recentes|sort(attribute='value', reverse=true), 'label', 'value', max_val=5.0, color='#555', format_value='{:.2f}') }}
+        {% endif %}
+
+        <details>
+            <summary>Ver tabela completa ({{ cpc|length }} avaliações)</summary>
+            <table>
+                <thead><tr><th>Ano</th><th>Curso</th><th>Nota (CPC Contínuo)</th><th>Conceito (Faixa)</th></tr></thead>
+                <tbody>
+                {% for c in cpc %}
+                <tr>
+                    <td>{{ c.ano }}</td>
+                    <td>{{ c.area_avaliacao|title }}</td>
+                    <td>{{ "%.2f"|format(c.cpc_continuo) if c.cpc_continuo else "—" }}</td>
+                    <td>{{ faixa_badge(c.cpc_faixa) if c.cpc_faixa else "Sem conceito" }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </details>
+    </section>
+    {% endif %}
+
+    {# ── CENSO ──────────────────────────────────────────────────── #}
+    {% if censo %}
+    <section>
+        <h2>Tamanho da instituição</h2>
+        <p>
+            Evolução de matrículas ao longo dos anos (dados do Censo da Educação Superior).
+        </p>
+
+        {{ line_chart(censo, 'ano', 'matriculas', color='#333', label='Matriculas') }}
+
+        <p>
+            Em {{ censo[-1].ano }}: {{ censo[-1].cursos }} cursos,
+            {{ "{:,}".format(censo[-1].matriculas) }} alunos matriculados,
+            {{ "{:,}".format(censo[-1].ingressantes) }} novos ingressantes.
+        </p>
+
+        <details>
+            <summary>Ver tabela completa</summary>
+            <table>
+                <thead><tr><th>Ano</th><th>Cursos</th><th>Vagas</th><th>Matrículas</th><th>Concluintes</th></tr></thead>
+                <tbody>
+                {% for c in censo|reverse %}
+                <tr>
+                    <td>{{ c.ano }}</td>
+                    <td>{{ c.cursos }}</td>
+                    <td>{{ "{:,}".format(c.vagas) }}</td>
+                    <td>{{ "{:,}".format(c.matriculas) }}</td>
+                    <td>{{ "{:,}".format(c.concluintes) }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </details>
+    </section>
+    {% endif %}
+    {# ── Comparar ─────────────────────────────────────────────────── #}
+    <section>
+        <h2>Comparar com outra instituição</h2>
+        <form action="/comparar" method="get" class="compare-form">
+            <input type="hidden" name="a" value="{{ ies.co_ies }}">
+            <input
+                type="search"
+                name="q_b"
+                placeholder="Digite o nome da outra faculdade..."
+                autocomplete="off"
+                hx-get="/busca_comparar?a={{ ies.co_ies }}&tipo=ies"
+                hx-trigger="keyup changed delay:300ms"
+                hx-target="#comparar-resultados"
+            >
+            <noscript>
+                <p class="meta">Ou acesse diretamente: <code>/comparar?a={{ ies.co_ies }}&b=CODIGO</code></p>
+            </noscript>
+        </form>
+        <div id="comparar-resultados"></div>
+    </section>
+
+</article>
+{% endblock %}

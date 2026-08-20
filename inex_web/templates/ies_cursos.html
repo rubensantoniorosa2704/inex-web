@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Cursos — {{ ies.no_ies_atual }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="/">Início</a> / <a href="/ies/{{ ies.co_ies }}">{{ ies.no_ies_atual }}</a> / <strong>Todos os cursos</strong>
+{% endblock %}
+
+{% block content %}
+<article>
+    <h1>Cursos avaliados</h1>
+    <p class="meta">{{ ies.no_ies_atual }}</p>
+
+    {# ── Filtros ─────────────────────────────────────────────────── #}
+    <form method="get" class="filters">
+        <label>
+            Ano:
+            <select name="ano" onchange="this.form.submit()">
+                <option value="">Mais recente de cada</option>
+                {% for a in anos_disponiveis %}
+                <option value="{{ a }}" {% if ano_selecionado == a|string %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+                <option value="todos" {% if ano_selecionado == 'todos' %}selected{% endif %}>Todos os anos</option>
+            </select>
+        </label>
+
+        <label>
+            Ordenar:
+            <select name="ordem" onchange="this.form.submit()">
+                <option value="nota" {% if ordem == 'nota' %}selected{% endif %}>Nota (maior primeiro)</option>
+                <option value="nome" {% if ordem == 'nome' %}selected{% endif %}>Nome (A-Z)</option>
+                <option value="ano" {% if ordem == 'ano' %}selected{% endif %}>Ano (recente primeiro)</option>
+            </select>
+        </label>
+
+        <noscript><button type="submit">Filtrar</button></noscript>
+    </form>
+
+    {# ── Tabela ──────────────────────────────────────────────────── #}
+    {% if enade %}
+    <p class="meta">{{ enade|length }} resultado{{ 's' if enade|length > 1 else '' }}</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Curso</th>
+                <th>Ano</th>
+                <th>Nota</th>
+                <th>FG</th>
+                <th>CE</th>
+                <th>Percentil</th>
+                <th>Presentes</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for e in enade %}
+        <tr>
+            <td>
+                <a href="/ies/{{ ies.co_ies }}/curso/{{ e.co_curso }}">
+                    {{ e.no_curso or ("Grupo " ~ e.co_grupo) }}
+                </a>
+            </td>
+            <td>{{ e.ano }}</td>
+            <td><strong>{{ "%.1f"|format(e.nt_ger_media) if e.nt_ger_media else "—" }}</strong></td>
+            <td>{{ "%.1f"|format(e.nt_fg_media) if e.nt_fg_media else "—" }}</td>
+            <td>{{ "%.1f"|format(e.nt_ce_media) if e.nt_ce_media else "—" }}</td>
+            <td>
+                {% if e.percentil_grupo is not none %}
+                top {{ (100 - e.percentil_grupo)|round|int }}%
+                {% else %}—{% endif %}
+            </td>
+            <td>{{ e.qt_presentes }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Nenhum resultado para este filtro.</p>
+    {% endif %}
+</article>
+{% endblock %}

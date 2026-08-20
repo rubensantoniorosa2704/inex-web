@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}INEX{% endblock %} — Indicadores do Ensino Superior</title>
+    <meta name="description" content="{% block description %}Descubra se sua faculdade e boa. Notas, comparativos e historico de todas as instituicoes de ensino superior do Brasil. Dados publicos do MEC.{% endblock %}">
+    <link rel="canonical" href="{% block canonical %}{{ request.url }}{% endblock %}">
+    {% block robots_meta %}{% endblock %}
+
+    <!-- Open Graph (compartilhamento em redes sociais) -->
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+    <meta property="og:description" content="{{ self.description() }}">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="pt_BR">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/">INEX</a>
+            <a href="/sobre">Sobre</a>
+            <a href="/dados">Dados</a>
+        </nav>
+    </header>
+    <main>
+        <nav class="breadcrumb" aria-label="Navegação">
+            {% block breadcrumb %}
+            {% endblock %}
+        </nav>
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        <p>
+            Dados derivados dos microdados públicos do <a href="https://www.gov.br/inep">INEP/MEC</a>.
+            Processamento próprio — para dados oficiais, consulte o INEP.
+        </p>
+        <p>
+            <a href="https://github.com/rubensantoniorosa2704">Código-fonte</a> ·
+            Dados: <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> ·
+            Código: <a href="/dados">MIT</a>
+        </p>
+    </footer>
+</body>
+</html>

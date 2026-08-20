@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Pesquisar{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>INEX</h1>
+    <p>Indicadores do Ensino Superior Brasileiro</p>
+    <p class="subtitle">Dados abertos do INEP, acessíveis para todos.</p>
+
+    <form action="/busca" method="get" class="search-form">
+        <input
+            type="search"
+            name="q"
+            placeholder="Nome da faculdade, cidade ou sigla..."
+            autocomplete="off"
+            autofocus
+            hx-get="/busca"
+            hx-trigger="keyup changed delay:300ms, search"
+            hx-target="#resultados"
+            hx-push-url="false"
+        >
+        <noscript><button type="submit">Buscar</button></noscript>
+    </form>
+
+    <div id="resultados"></div>
+</section>
+
+<section class="info">
+    <h2>O que é?</h2>
+    <p>
+        Descubra a qualidade de qualquer faculdade ou curso do Brasil
+        usando os dados oficiais do MEC. Gratuito, sem cadastro.
+    </p>
+
+    <h2>Como funciona?</h2>
+    <p>
+        Pesquise pelo nome da faculdade, do curso ou da cidade.
+        Você vai ver a nota do MEC (de 1 a 5), como ela se compara
+        com outras, e como evoluiu ao longo dos anos.
+    </p>
+
+    <h2>Para quem?</h2>
+    <ul>
+        <li><strong>Pais e estudantes</strong> — escolher faculdade com base em dados reais</li>
+        <li><strong>Pesquisadores</strong> — <a href="/dados">dados abertos</a> para download e análise</li>
+        <li><strong>Jornalistas</strong> — fonte verificável para matérias sobre educação</li>
+        <li><strong>Gestores de IES</strong> — diagnóstico rápido e comparativo</li>
+    </ul>
+</section>
+{% endblock %}

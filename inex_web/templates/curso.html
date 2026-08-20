@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}{{ curso_nome }} — {{ ies.no_ies_atual }}{% endblock %}
+{% block description %}{{ curso_nome }} na {{ ies.no_ies_atual }} e bom? Nota do MEC, posicao no ranking nacional e perfil dos alunos. {{ ies.no_municipio }}/{{ ies.sg_uf }}.{% endblock %}
+
+{% block breadcrumb %}
+<a href="/">Início</a> / <a href="/ies/{{ ies.co_ies }}">{{ ies.no_ies_atual }}</a> / <strong>{{ curso_nome }}</strong>
+{% endblock %}
+
+{% block content %}
+<article>
+    <h1>{{ curso_nome }}</h1>
+    <p class="meta">{{ ies.no_ies_atual }} · {{ ies.no_municipio }}/{{ ies.sg_uf }}</p>
+
+    {# ── Historico ENADE ─────────────────────────────────────────── #}
+    {% if historico %}
+    <section>
+        <h2>Historico ENADE</h2>
+
+        {% if historico|length > 1 %}
+        {{ line_chart(historico, 'ano', 'nt_ger_media', color='#333', label='Nota geral') }}
+        {% endif %}
+
+        <details{% if historico|length <= 3 %} open{% endif %}>
+            <summary>Ver tabela</summary>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ano</th>
+                        <th>Nota Geral</th>
+                        <th>FG</th>
+                        <th>CE</th>
+                        <th>Percentil</th>
+                        <th>Presentes</th>
+                        <th>Participacao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for h in historico %}
+                <tr>
+                    <td>{{ h.ano }}</td>
+                    <td><strong>{{ "%.1f"|format(h.nt_ger_media) if h.nt_ger_media else "—" }}</strong></td>
+                    <td>{{ "%.1f"|format(h.nt_fg_media) if h.nt_fg_media else "—" }}</td>
+                    <td>{{ "%.1f"|format(h.nt_ce_media) if h.nt_ce_media else "—" }}</td>
+                    <td>
+                        {% if h.percentil_grupo is not none %}
+                        top {{ (100 - h.percentil_grupo)|round|int }}%
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>{{ h.qt_presentes }}</td>
+                    <td>{{ "%.0f"|format(h.tx_participacao * 100) }}%</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </details>
+    </section>
+    {% elif censo_curso %}
+    <section>
+        <h2>Dados do Censo</h2>
+        <p class="meta">Este curso ainda nao foi avaliado pelo ENADE.</p>
+        <table>
+            <thead><tr><th>Ano</th><th>Vagas</th><th>Ingressantes</th><th>Matriculas</th><th>Concluintes</th></tr></thead>
+            <tbody>
+            {% for c in censo_curso %}
+            <tr>
+                <td>{{ c.ano }}</td>
+                <td>{{ c.vagas }}</td>
+                <td>{{ c.ingressantes }}</td>
+                <td>{{ c.matriculas }}</td>
+                <td>{{ c.concluintes }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    {# ── Perfil dos alunos ────────────────────────────────────────── #}
+    {% if perfil %}
+    <section>
+        <h2>Perfil dos Estudantes ({{ historico[-1].ano }})</h2>
+
+        {# Renda #}
+        {% set renda_labels = {'A': 'Ate 1.5 SM', 'B': '1.5 a 3 SM', 'C': '3 a 4.5 SM', 'D': '4.5 a 6 SM', 'E': '6 a 10 SM', 'F': '10 a 30 SM', 'G': 'Acima 30 SM'} %}
+        {% set renda_cores = ['#1a1a1a', '#3d3d3d', '#5c5c5c', '#7a7a7a', '#999999', '#b5b5b5', '#d0d0d0'] %}
+        {% set renda_segs = [] %}
+        {% for letra in ['A','B','C','D','E','F','G'] %}
+            {% set col = 'qe_i08_' ~ letra %}
+            {% if perfil.get(col) %}
+                {% set _ = renda_segs.append((renda_labels[letra], perfil[col], renda_cores[loop.index0])) %}
+            {% endif %}
+        {% endfor %}
+
+        {% if renda_segs %}
+        <h3>Renda familiar</h3>
+        {{ stacked_bar(renda_segs) }}
+        <ul class="legend">
+            {% for label, prop, cor in renda_segs %}
+            {% if prop > 0.02 %}
+            <li><span class="swatch" style="background:{{ cor }}"></span> {{ label }}: {{ "%.0f"|format(prop * 100) }}%</li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {# Trabalho #}
+        {% set trabalho_labels = {'A': 'Nao trabalha', 'B': 'Eventualmente', 'C': 'Ate 20h/sem', 'D': '21-39h/sem', 'E': '40h+ por semana'} %}
+        {% set trabalho_cores = ['#b5b5b5', '#999999', '#7a7a7a', '#4a4a4a', '#1a1a1a'] %}
+        {% set trab_segs = [] %}
+        {% for letra in ['A','B','C','D','E'] %}
+            {% set col = 'qe_i10_' ~ letra %}
+            {% if perfil.get(col) %}
+                {% set _ = trab_segs.append((trabalho_labels[letra], perfil[col], trabalho_cores[loop.index0])) %}
+            {% endif %}
+        {% endfor %}
+
+        {% if trab_segs %}
+        <h3>Situacao de trabalho</h3>
+        {{ stacked_bar(trab_segs) }}
+        <ul class="legend">
+            {% for label, prop, cor in trab_segs %}
+            {% if prop > 0.02 %}
+            <li><span class="swatch" style="background:{{ cor }}"></span> {{ label }}: {{ "%.0f"|format(prop * 100) }}%</li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {# Escola #}
+        {% set escola_labels = {'A': 'Toda publica', 'B': 'Toda privada', 'C': 'Maior parte publica', 'D': 'Maior parte privada', 'E': 'Metade em cada'} %}
+        {% set escola_cores = ['#1a1a1a', '#7a7a7a', '#3d3d3d', '#999999', '#b5b5b5'] %}
+        {% set escola_segs = [] %}
+        {% for letra in ['A','B','C','D','E'] %}
+            {% set col = 'qe_i17_' ~ letra %}
+            {% if perfil.get(col) %}
+                {% set _ = escola_segs.append((escola_labels[letra], perfil[col], escola_cores[loop.index0])) %}
+            {% endif %}
+        {% endfor %}
+
+        {% if escola_segs %}
+        <h3>Ensino Medio</h3>
+        {{ stacked_bar(escola_segs) }}
+        <ul class="legend">
+            {% for label, prop, cor in escola_segs %}
+            {% if prop > 0.02 %}
+            <li><span class="swatch" style="background:{{ cor }}"></span> {{ label }}: {{ "%.0f"|format(prop * 100) }}%</li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </section>
+    {% endif %}
+</article>
+{% endblock %}

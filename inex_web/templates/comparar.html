@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Comparar: {{ curso_a.nome }} vs {{ curso_b.nome }}{% endblock %}
+{% block robots_meta %}<meta name="robots" content="noindex">{% endblock %}
+
+{% block breadcrumb %}
+<a href="/">Início</a> / <strong>Comparação de cursos</strong>
+{% endblock %}
+
+{% block content %}
+<article>
+    <h1>Comparativo</h1>
+
+    <table class="compare-table">
+        <thead>
+            <tr>
+                <th></th>
+                <th>{{ curso_a.nome }}</th>
+                <th>{{ curso_b.nome }}</th>
+            </tr>
+            <tr>
+                <th></th>
+                <td class="meta">{{ curso_a.ies.no_ies_atual }}</td>
+                <td class="meta">{{ curso_b.ies.no_ies_atual }}</td>
+            </tr>
+        </thead>
+        <tbody>
+            {% if curso_a.historico and curso_b.historico %}
+            {% set a = curso_a.historico[-1] %}
+            {% set b = curso_b.historico[-1] %}
+            <tr>
+                <th>Ultimo ano avaliado</th>
+                <td>{{ a.ano }}</td>
+                <td>{{ b.ano }}</td>
+            </tr>
+            <tr>
+                <th>Nota Geral</th>
+                <td><strong>{{ "%.1f"|format(a.nt_ger_media) if a.nt_ger_media else "—" }}</strong></td>
+                <td><strong>{{ "%.1f"|format(b.nt_ger_media) if b.nt_ger_media else "—" }}</strong></td>
+            </tr>
+            <tr>
+                <th>Formacao Geral</th>
+                <td>{{ "%.1f"|format(a.nt_fg_media) if a.nt_fg_media else "—" }}</td>
+                <td>{{ "%.1f"|format(b.nt_fg_media) if b.nt_fg_media else "—" }}</td>
+            </tr>
+            <tr>
+                <th>Componente Especifico</th>
+                <td>{{ "%.1f"|format(a.nt_ce_media) if a.nt_ce_media else "—" }}</td>
+                <td>{{ "%.1f"|format(b.nt_ce_media) if b.nt_ce_media else "—" }}</td>
+            </tr>
+            <tr>
+                <th>Percentil no Brasil</th>
+                <td>
+                    {% if a.percentil_grupo is not none %}top {{ (100 - a.percentil_grupo)|round|int }}%{% else %}—{% endif %}
+                </td>
+                <td>
+                    {% if b.percentil_grupo is not none %}top {{ (100 - b.percentil_grupo)|round|int }}%{% else %}—{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Presentes</th>
+                <td>{{ a.qt_presentes }}</td>
+                <td>{{ b.qt_presentes }}</td>
+            </tr>
+            <tr>
+                <th>Participacao</th>
+                <td>{{ "%.0f"|format(a.tx_participacao * 100) }}%</td>
+                <td>{{ "%.0f"|format(b.tx_participacao * 100) }}%</td>
+            </tr>
+            {% endif %}
+
+            {# Perfil #}
+            {% if curso_a.perfil and curso_b.perfil %}
+            <tr><th colspan="3" class="section-header">Perfil dos Estudantes</th></tr>
+
+            {% set trabalho_map = {'A': 'Nao trabalha', 'E': '40h+ por semana'} %}
+            {% for letra, desc in [('A', 'Nao trabalham'), ('E', 'Trabalham 40h+')] %}
+            {% set col = 'qe_i10_' ~ letra %}
+            <tr>
+                <th>{{ desc }}</th>
+                <td>{{ "%.0f"|format(curso_a.perfil.get(col, 0) * 100) }}%</td>
+                <td>{{ "%.0f"|format(curso_b.perfil.get(col, 0) * 100) }}%</td>
+            </tr>
+            {% endfor %}
+
+            {% set col_pub = 'qe_i17_A' %}
+            <tr>
+                <th>Escola publica</th>
+                <td>{{ "%.0f"|format(curso_a.perfil.get(col_pub, 0) * 100) }}%</td>
+                <td>{{ "%.0f"|format(curso_b.perfil.get(col_pub, 0) * 100) }}%</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <p class="meta">
+        <a href="/ies/{{ curso_a.ies.co_ies }}/curso/{{ curso_a.historico[0].co_curso if curso_a.historico else '' }}">Ver {{ curso_a.nome }}</a> ·
+        <a href="/ies/{{ curso_b.ies.co_ies }}/curso/{{ curso_b.historico[0].co_curso if curso_b.historico else '' }}">Ver {{ curso_b.nome }}</a>
+    </p>
+</article>
+{% endblock %}

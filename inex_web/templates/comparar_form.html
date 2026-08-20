@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Comparar{% endblock %}
+{% block robots_meta %}<meta name="robots" content="noindex">{% endblock %}
+
+{% block breadcrumb %}
+<a href="/">Início</a> / <strong>Comparar</strong>
+{% endblock %}
+
+{% block content %}
+<article>
+    <h1>Comparar</h1>
+
+    <p>Compare duas instituições ou dois cursos lado a lado.</p>
+
+    <h2>Comparar instituições</h2>
+    <p>Use os códigos das instituições na URL:</p>
+    <pre><code>/comparar?a=87&b=76</code></pre>
+    <p class="meta">
+        Exemplo: <a href="/comparar?a=87&b=76">UNIFEBE vs FURB</a>
+    </p>
+
+    <h2>Comparar cursos</h2>
+    <p>Use o formato <code>co_ies:co_curso</code>:</p>
+    <pre><code>/comparar?a=87:19877&b=76:19456</code></pre>
+    <p class="meta">
+        Os códigos aparecem na URL quando você acessa a página de um curso.
+    </p>
+</article>
+{% endblock %}

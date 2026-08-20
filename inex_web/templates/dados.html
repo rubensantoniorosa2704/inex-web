@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Dados{% endblock %}
+
+{% block content %}
+<article>
+    <h1>Download dos Dados</h1>
+
+    <p>
+        Todos os dados processados estão disponíveis para download em formato
+        <a href="https://parquet.apache.org/">Apache Parquet</a> (compressão zstd).
+    </p>
+
+    <p>
+        Podem ser lidos com
+        <a href="https://duckdb.org/">DuckDB</a>,
+        <a href="https://pola.rs/">Polars</a>,
+        <a href="https://pandas.pydata.org/">Pandas</a>,
+        <a href="https://spark.apache.org/">Spark</a>,
+        ou qualquer ferramenta que suporte Parquet.
+    </p>
+
+    <h2>Exemplo rápido (DuckDB)</h2>
+
+    <pre><code>-- Instale: pip install duckdb
+-- No Python:
+import duckdb
+duckdb.sql("SELECT * FROM 'fact_enade.parquet' WHERE co_ies = 87").show()
+
+-- Ou no CLI:
+-- duckdb -c "SELECT * FROM 'fact_igc.parquet' LIMIT 10"</code></pre>
+
+    <h2>Arquivos disponíveis</h2>
+
+    <table>
+        <thead>
+            <tr><th>Arquivo</th><th>Descrição</th><th>Tamanho</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for a in arquivos %}
+            <tr>
+                <td><code>{{ a.arquivo }}</code></td>
+                <td>
+                    {% if 'dim_ies' in a.nome %}Dimensão: uma linha por IES
+                    {% elif 'hist_ies' in a.nome %}Histórico de nome/categoria por IES/ano
+                    {% elif 'fact_censo_ies' in a.nome %}Censo: docentes e técnicos por IES/ano
+                    {% elif 'fact_censo_cursos' in a.nome %}Censo: vagas e matrículas por curso/ano
+                    {% elif 'fact_cpc' in a.nome %}CPC por curso/ano
+                    {% elif 'fact_idd' in a.nome %}IDD por curso/ano
+                    {% elif 'fact_igc' in a.nome %}IGC por IES/ano
+                    {% elif 'fact_enade' == a.nome %}ENADE: notas médias por curso/ano
+                    {% elif 'fact_enade_perfil' in a.nome %}Perfil socioeconômico por curso/ano
+                    {% else %}{{ a.nome }}
+                    {% endif %}
+                </td>
+                <td>{{ a.tamanho_mb }} MB</td>
+                <td><a href="/dados/{{ a.arquivo }}">Download</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Licença</h2>
+
+    <p>
+        <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> —
+        uso livre (inclusive comercial) com atribuição.
+        Cite: <em>"Dados: INEX (derivados dos microdados do INEP/MEC)"</em>.
+    </p>
+
+    <h2>Fonte original</h2>
+
+    <p>
+        Os dados brutos estão disponíveis em
+        <a href="https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/microdados">gov.br/inep — Microdados</a>.
+    </p>
+</article>
+{% endblock %}
