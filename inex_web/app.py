@@ -52,6 +52,18 @@ with app.app_context():
     build_index()
 
 
+@app.after_request
+def security_headers(response):
+    """Headers de segurança em todas as respostas."""
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    if request.is_secure:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
 @app.route("/busca_comparar")
 @limiter.limit("20 per minute")
 def busca_comparar():
