@@ -100,6 +100,7 @@ def bar_chart_horizontal(
     """
     Gráfico de barras horizontais.
     data: lista de dicts com label_key e value_key.
+    Cor degrada do mais escuro (maior valor) ao mais claro (menor valor).
     """
     items = [(d[label_key], d[value_key]) for d in data if d[value_key] is not None]
     if not items:
@@ -118,6 +119,12 @@ def bar_chart_horizontal(
     if max_val is None:
         max_val = max(v for _, v in items) or 1
 
+    # Calcular range de valores pra gradiente
+    values = [v for _, v in items]
+    v_min = min(values) if values else 0
+    v_max = max(values) if values else 1
+    v_range = v_max - v_min if v_max != v_min else 1
+
     svg_parts = [
         f'<svg viewBox="0 0 {width} {height}" class="chart bar-chart"'
         f' xmlns="http://www.w3.org/2000/svg">',
@@ -127,6 +134,13 @@ def bar_chart_horizontal(
         y = padding_y + i * (bar_height + gap)
         bar_w = (value / max_val) * chart_w if max_val > 0 else 0
 
+        # Gradiente: azul escuro (maior) → azul claro (menor)
+        t = (value - v_min) / v_range  # 0=menor, 1=maior
+        r = int(180 + (20 - 180) * t)
+        g = int(210 + (60 - 210) * t)
+        b = int(240 + (140 - 240) * t)
+        bar_color = f"rgb({r}, {g}, {b})"
+
         # Label
         svg_parts.append(
             f'<text x="{padding_left - 8}" y="{y + bar_height / 2 + 4}" '
@@ -135,7 +149,7 @@ def bar_chart_horizontal(
         # Bar
         svg_parts.append(
             f'<rect x="{padding_left}" y="{y}" width="{bar_w:.1f}" '
-            f'height="{bar_height}" fill="{color}" opacity="0.8" rx="2"/>'
+            f'height="{bar_height}" fill="{bar_color}" rx="2"/>'
         )
         # Value
         formatted = format_value.format(value)
