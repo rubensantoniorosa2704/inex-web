@@ -41,12 +41,24 @@
 </ul>
 {% endif %}
 
-{% if resultados.has_more %}
-<p class="load-more">
-    <a href="/busca?q={{ q }}&p={{ resultados.next_page }}">
-        Mais resultados
-    </a>
-</p>
+{% if resultados.total_pages > 1 %}
+<nav class="pagination">
+    {% if resultados.page > 1 %}
+    <a href="/busca?q={{ q }}&p={{ resultados.page - 1 }}">← Anterior</a>
+    {% endif %}
+
+    {% for p in resultados.page_range %}
+        {% if p == resultados.page %}
+        <strong>{{ p }}</strong>
+        {% else %}
+        <a href="/busca?q={{ q }}&p={{ p }}">{{ p }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if resultados.page < resultados.total_pages %}
+    <a href="/busca?q={{ q }}&p={{ resultados.page + 1 }}">Próxima →</a>
+    {% endif %}
+</nav>
 {% endif %}
 
 {% elif q is defined and q %}

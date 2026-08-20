@@ -182,6 +182,33 @@ footer {
     font-size: 0.9rem;
 }
 
+/* ── Pagination ──────────────────────────────────────── */
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+}
+
+.pagination a, .pagination strong {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    text-decoration: none;
+}
+
+.pagination strong {
+    background: var(--fg);
+    color: var(--bg);
+    border-color: var(--fg);
+}
+
+.pagination a:hover {
+    background: var(--bg-alt);
+}
+
 /* ── Tables ──────────────────────────────────────────── */
 
 table {

@@ -54,13 +54,16 @@ with app.app_context():
 
 @app.after_request
 def security_headers(response):
-    """Headers de segurança em todas as respostas."""
+    """Headers de segurança e cache em todas as respostas."""
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     if request.is_secure:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    # Cache de páginas HTML por 5 min (browser guarda, botão voltar instantâneo)
+    if response.content_type and "text/html" in response.content_type:
+        response.headers["Cache-Control"] = "public, max-age=300"
     return response
 
 
@@ -164,7 +167,7 @@ def busca_page():
         # HTMX: retorna fragmento vazio (limpa os resultados)
         if request.headers.get("HX-Request"):
             return ""
-        return render_template("busca.html", resultados={"ies": [], "cursos": [], "has_more": False, "next_page": 1, "q": ""}, q="")
+        return render_template("busca.html", resultados={"ies": [], "cursos": [], "page": 1, "total_pages": 0, "page_range": [], "q": ""}, q="")
 
     # Validar paginação
     try:
@@ -188,11 +191,21 @@ def busca_page():
     ies_results = [r for r in resultados if r["tipo"] == "ies"]
     curso_results = [r for r in resultados if r["tipo"] == "curso"]
 
+    # Calcular total de páginas (busca completa sem limite pra contar)
+    total_results = len(search(q, limite=1000))
+    total_pages = max(1, (total_results + limite - 1) // limite)
+
+    # Range de páginas pra exibir (max 7 ao redor da atual)
+    page_start = max(1, page - 3)
+    page_end = min(total_pages, page + 3)
+    page_range = list(range(page_start, page_end + 1))
+
     data = {
         "ies": ies_results,
         "cursos": curso_results,
-        "has_more": has_more,
-        "next_page": page + 1,
+        "page": page,
+        "total_pages": total_pages,
+        "page_range": page_range,
         "q": q,
     }
 
