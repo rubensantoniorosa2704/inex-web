@@ -12,12 +12,18 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 
 
 def _conn() -> duckdb.DuckDBPyConnection:
-    """Cria conexão DuckDB read-only apontando para os Parquets."""
+    """Cria conexão DuckDB in-memory com tabelas indexadas a partir dos Parquets."""
     con = duckdb.connect(":memory:", read_only=False)
-    # Registrar views para cada parquet
+    # Carregar parquets como tabelas (permite criação de índices)
     for f in DATA_DIR.glob("*.parquet"):
-        name = f.stem  # ex: fact_enade, dim_ies
-        con.execute(f"CREATE VIEW {name} AS SELECT * FROM read_parquet('{f}')")
+        name = f.stem
+        con.execute(f"CREATE TABLE {name} AS SELECT * FROM read_parquet('{f}')")
+
+    # Índices nas tabelas grandes usadas em JOINs e filtros frequentes
+    con.execute("CREATE INDEX idx_fact_censo_cursos_ies ON fact_censo_cursos (co_ies, co_curso, ano)")
+    con.execute("CREATE INDEX idx_fact_enade_ies ON fact_enade (co_ies, co_curso, ano)")
+    con.execute("CREATE INDEX idx_fact_enade_perfil_pk ON fact_enade_perfil (co_ies, co_curso, ano)")
+    con.execute("CREATE INDEX idx_fact_cpc_ies ON fact_cpc (co_ies, ano)")
     return con
 
 

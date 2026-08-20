@@ -62,8 +62,13 @@ def security_headers(response):
     if request.is_secure:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     # Cache de páginas HTML por 5 min (browser guarda, botão voltar instantâneo)
+    # Fragmentos HTMX não devem ser cacheados (mesma URL, resposta diferente)
     if response.content_type and "text/html" in response.content_type:
-        response.headers["Cache-Control"] = "public, max-age=300"
+        if request.headers.get("HX-Request"):
+            response.headers["Cache-Control"] = "no-store"
+        else:
+            response.headers["Cache-Control"] = "public, max-age=300"
+        response.headers["Vary"] = "HX-Request"
     return response
 
 

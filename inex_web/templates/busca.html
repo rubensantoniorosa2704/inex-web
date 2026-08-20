@@ -21,19 +21,42 @@
 (function() {
     var input = document.getElementById('search-input');
     var target = document.getElementById('resultados');
+    var form = input && input.closest('form');
     var timer;
+    var currentXhr = null;
     if (!input || !target) return;
+
+    function doSearch(q) {
+        if (currentXhr) { currentXhr.abort(); currentXhr = null; }
+        currentXhr = new XMLHttpRequest();
+        currentXhr.open('GET', '/busca?q=' + encodeURIComponent(q));
+        currentXhr.setRequestHeader('HX-Request', 'true');
+        currentXhr.onload = function() {
+            if (currentXhr && currentXhr.status === 200) target.innerHTML = currentXhr.responseText;
+            currentXhr = null;
+        };
+        currentXhr.send();
+        // Atualizar URL sem reload
+        history.replaceState(null, '', '/busca?q=' + encodeURIComponent(q));
+    }
+
+    // Na página de busca, o Enter faz busca inline (já estamos em /busca)
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            clearTimeout(timer);
+            var q = input.value.trim();
+            if (q.length < 2) return;
+            doSearch(q);
+        });
+    }
+
     input.addEventListener('input', function() {
         clearTimeout(timer);
+        if (currentXhr) { currentXhr.abort(); currentXhr = null; }
         var q = input.value.trim();
         if (q.length < 2) { target.innerHTML = ''; return; }
-        timer = setTimeout(function() {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', '/busca?q=' + encodeURIComponent(q));
-            xhr.setRequestHeader('HX-Request', 'true');
-            xhr.onload = function() { if (xhr.status === 200) target.innerHTML = xhr.responseText; };
-            xhr.send();
-        }, 300);
+        timer = setTimeout(function() { doSearch(q); }, 300);
     });
 })();
 </script>
