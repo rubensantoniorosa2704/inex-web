@@ -1,19 +1,15 @@
 """
 inex_web/search.py — Busca com índice invertido por prefixo de palavra.
 
-Carrega o idx_busca.parquet pré-computado (gerado por build_index.py).
-Build: ~0.5-1s para 76k entradas (leitura direta, sem JOINs).
+Carrega a tabela idx_busca do inex.duckdb (gerado por build_db.py).
+Build: ~0.3-0.5s para 76k entradas (leitura direta, sem JOINs).
 Busca: <5ms (interseção de sets por token prefix).
 """
 
 import time
 from collections import defaultdict
-from pathlib import Path
 
-import duckdb
-
-DATA_DIR = Path(__file__).parent.parent / "data"
-IDX_FILE = DATA_DIR / "idx_busca.parquet"
+from inex_web.db import get_db
 
 _INDEX: list[tuple] = []
 _PREFIX_MAP: dict[str, set[int]] = defaultdict(set)
@@ -38,26 +34,20 @@ def _tokenize(*fields) -> set[str]:
 
 
 def build_index() -> None:
-    """Carrega idx_busca.parquet e constrói índice invertido. ~0.5-1s para 76k docs."""
+    """Carrega idx_busca do banco e constrói índice invertido. ~0.3-0.5s para 76k docs."""
     global _INDEX, _PREFIX_MAP, _READY
 
     if _READY:
         return
 
-    if not IDX_FILE.exists():
-        raise FileNotFoundError(
-            f"{IDX_FILE} não encontrado. Rode: python build_index.py"
-        )
-
     start = time.perf_counter()
 
-    con = duckdb.connect(":memory:", read_only=False)
-    rows = con.execute(f"""
+    con = get_db()
+    rows = con.execute("""
         SELECT tipo, co_ies, co_curso, nome, sigla, municipio, uf, org,
                categoria, igc_faixa, igc_continuo, nota, percentil
-        FROM read_parquet('{IDX_FILE}')
+        FROM idx_busca
     """).fetchall()
-    con.close()
 
     index = []
     prefix_map: dict[str, set[int]] = defaultdict(set)

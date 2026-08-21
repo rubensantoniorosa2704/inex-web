@@ -3,4 +3,5 @@ __pycache__/
 *.pyc
 *.egg-info/
 .env
+data/inex.duckdb
 data/idx_busca.parquet

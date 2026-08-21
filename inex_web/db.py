@@ -1,7 +1,7 @@
 """
 inex_web/db.py — Conexão DuckDB e queries nomeadas.
 
-Lê os Parquets gold diretamente. Todas as queries retornam listas de dicts.
+Abre data/inex.duckdb (gerado por build_db.py). Todas as queries retornam listas de dicts.
 """
 
 from pathlib import Path
@@ -9,16 +9,16 @@ from pathlib import Path
 import duckdb
 
 DATA_DIR = Path(__file__).parent.parent / "data"
+DB_FILE = DATA_DIR / "inex.duckdb"
 
 
 def _conn() -> duckdb.DuckDBPyConnection:
-    """Cria conexão DuckDB read-only apontando para os Parquets via views."""
-    con = duckdb.connect(":memory:", read_only=False)
-    # Views leem direto do Parquet — sem cópia em memória
-    for f in DATA_DIR.glob("*.parquet"):
-        name = f.stem
-        con.execute(f"CREATE VIEW {name} AS SELECT * FROM read_parquet('{f}')")
-    return con
+    """Abre o banco DuckDB pré-computado (read-only)."""
+    if not DB_FILE.exists():
+        raise FileNotFoundError(
+            f"{DB_FILE} não encontrado. Rode: python build_db.py"
+        )
+    return duckdb.connect(str(DB_FILE), read_only=True)
 
 
 # Conexão singleton (reusada entre requests)

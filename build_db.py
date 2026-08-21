@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-build_index.py — Gera idx_busca.parquet a partir dos Parquets gold.
+build_db.py — Gera data/inex.duckdb a partir dos Parquets gold.
 
-Roda localmente (ou no CI) quando os dados mudam.
-Executa os JOINs pesados uma única vez e salva o resultado desnormalizado.
+Materializa todas as tabelas + índice de busca desnormalizado.
+Roda localmente ou no CI quando os dados mudam.
+
+Pré-requisitos:
+    - Parquets gold em data/ (copiados do inex-pipelines)
 
 Uso:
-    python build_index.py
+    python build_db.py
+
+O resultado é data/inex.duckdb (~80-100MB), usado pelo app Flask.
 """
 
 import time
@@ -15,22 +20,41 @@ from pathlib import Path
 import duckdb
 
 DATA_DIR = Path(__file__).parent / "data"
-OUTPUT = DATA_DIR / "idx_busca.parquet"
+DB_FILE = DATA_DIR / "inex.duckdb"
 
 
 def main():
     start = time.perf_counter()
-    con = duckdb.connect(":memory:")
 
-    # Registrar views dos Parquets
-    for f in DATA_DIR.glob("*.parquet"):
-        if f.name == "idx_busca.parquet":
-            continue
-        con.execute(f"CREATE VIEW {f.stem} AS SELECT * FROM read_parquet('{f}')")
+    # Remover banco anterior se existir
+    if DB_FILE.exists():
+        DB_FILE.unlink()
 
-    # IES desnormalizado
+    parquets = [f for f in sorted(DATA_DIR.glob("*.parquet")) if f.name != "idx_busca.parquet"]
+    if not parquets:
+        print("❌ Nenhum Parquet encontrado em data/. Copie os gold do inex-pipelines.")
+        print("   Ex: cp -r /caminho/para/inex-pipelines/data/gold/* data/")
+        raise SystemExit(1)
+
+    con = duckdb.connect(str(DB_FILE))
+
+    # ─────────────────────────────────────────────────────────────────────
+    # 1. Materializar todos os Parquets como tabelas
+    # ─────────────────────────────────────────────────────────────────────
+    print("Materializando tabelas...")
+    for f in parquets:
+        name = f.stem
+        con.execute(f"CREATE TABLE {name} AS SELECT * FROM read_parquet('{f}')")
+        count = con.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0]
+        print(f"  {name}: {count:,} linhas")
+
+    # ─────────────────────────────────────────────────────────────────────
+    # 2. Criar índice de busca desnormalizado
+    # ─────────────────────────────────────────────────────────────────────
+    print("Criando índice de busca...")
     con.execute("""
-        CREATE TABLE idx_ies AS
+        CREATE TABLE idx_busca AS
+        -- IES
         SELECT
             'ies' AS tipo,
             d.co_ies,
@@ -56,11 +80,10 @@ def main():
                    ROW_NUMBER() OVER (PARTITION BY co_ies ORDER BY ano DESC) as rn
             FROM fact_igc
         ) g ON d.co_ies = g.co_ies AND g.rn = 1
-    """)
 
-    # Cursos desnormalizado
-    con.execute("""
-        CREATE TABLE idx_cursos AS
+        UNION ALL
+
+        -- Cursos
         SELECT
             'curso' AS tipo,
             cr.co_ies,
@@ -94,21 +117,15 @@ def main():
         WHERE cr.rn = 1
     """)
 
-    # Unir e exportar
-    con.execute(f"""
-        COPY (
-            SELECT * FROM idx_ies
-            UNION ALL
-            SELECT * FROM idx_cursos
-        ) TO '{OUTPUT}' (FORMAT PARQUET, COMPRESSION ZSTD)
-    """)
+    idx_count = con.execute("SELECT COUNT(*) FROM idx_busca").fetchone()[0]
+    print(f"  idx_busca: {idx_count:,} linhas")
+
+    con.close()
 
     # Stats
-    count = con.execute(f"SELECT COUNT(*) FROM read_parquet('{OUTPUT}')").fetchone()[0]
-    size_mb = OUTPUT.stat().st_size / 1024 / 1024
+    size_mb = DB_FILE.stat().st_size / 1024 / 1024
     elapsed = time.perf_counter() - start
-
-    print(f"✓ {OUTPUT.name}: {count:,} registros, {size_mb:.1f} MB ({elapsed:.1f}s)")
+    print(f"\n✓ {DB_FILE.name}: {size_mb:.1f} MB ({elapsed:.1f}s)")
 
 
 if __name__ == "__main__":

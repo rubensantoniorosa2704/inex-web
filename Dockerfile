@@ -13,11 +13,11 @@ RUN pip install --no-cache-dir . && \
 
 # Copiar código e dados
 COPY inex_web/ inex_web/
-COPY data/ data/
-COPY build_index.py .
+COPY data/*.parquet data/
+COPY build_db.py .
 
-# Gerar índice de busca pré-computado
-RUN python build_index.py
+# Gerar banco DuckDB pré-computado
+RUN python build_db.py
 
 # Usuário não-root
 RUN useradd --create-home appuser
