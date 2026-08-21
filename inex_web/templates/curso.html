@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ curso_nome }} — {{ ies.no_ies_atual }}{% endblock %}
-{% block description %}{{ curso_nome }} na {{ ies.no_ies_atual }} e bom? Nota do MEC, posicao no ranking nacional e perfil dos alunos. {{ ies.no_municipio }}/{{ ies.sg_uf }}.{% endblock %}
+{% block description %}{{ curso_nome }} na {{ ies.no_ies_atual }} é bom? Nota do MEC, posição no ranking nacional e perfil dos alunos. {{ ies.no_municipio }}/{{ ies.sg_uf }}.{% endblock %}
 
 {% block breadcrumb %}
 <a href="/">Início</a> / <a href="/ies/{{ ies.co_ies }}">{{ ies.no_ies_atual }}</a> / <strong>{{ curso_nome }}</strong>
@@ -11,10 +11,10 @@
     <h1>{{ curso_nome }}</h1>
     <p class="meta">{{ ies.no_ies_atual }} · {{ ies.no_municipio }}/{{ ies.sg_uf }}</p>
 
-    {# ── Historico ENADE ─────────────────────────────────────────── #}
+    {# ── Histórico ENADE ─────────────────────────────────────────── #}
     {% if historico %}
     <section>
-        <h2>Historico ENADE</h2>
+        <h2>Histórico ENADE</h2>
 
         {% if historico|length > 1 %}
         {{ line_chart(historico, 'ano', 'nt_ger_media', color='#333', label='Nota geral') }}

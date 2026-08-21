@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ ies.no_ies_atual }}{% endblock %}
-{% block description %}{{ ies.no_ies_atual }} e boa? Veja a nota oficial do MEC, comparativo com outras faculdades e historico de qualidade. {{ ies.no_municipio }}/{{ ies.sg_uf }}.{% endblock %}
+{% block description %}{{ ies.no_ies_atual }} é boa? Veja a nota oficial do MEC, comparativo com outras faculdades e histórico de qualidade. {{ ies.no_municipio }}/{{ ies.sg_uf }}.{% endblock %}
 
 {% block breadcrumb %}
 <a href="/">Início</a> / <strong>{{ ies.no_ies_atual }}</strong>
@@ -42,7 +42,7 @@
         {% endif %}
 
         {% if igc|length > 1 %}
-        {{ line_chart(igc, 'ano', 'igc_continuo', label='Evolucao IGC') }}
+        {{ line_chart(igc, 'ano', 'igc_continuo', label='Evolução IGC') }}
         <details>
             <summary>Ver tabela</summary>
             <table>
