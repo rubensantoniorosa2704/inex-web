@@ -14,6 +14,10 @@ RUN pip install --no-cache-dir . && \
 # Copiar código e dados
 COPY inex_web/ inex_web/
 COPY data/ data/
+COPY build_index.py .
+
+# Gerar índice de busca pré-computado
+RUN python build_index.py
 
 # Usuário não-root
 RUN useradd --create-home appuser
@@ -21,7 +25,7 @@ USER appuser
 
 EXPOSE 8080
 
-# Produção: gunicorn com workers conservadores (256MB RAM no Fly free tier)
+# Produção: gunicorn com workers conservadores
 CMD ["gunicorn", "inex_web.app:app", \
      "--bind", "0.0.0.0:8080", \
      "--workers", "1", \

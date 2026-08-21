@@ -1,21 +1,28 @@
 """
-inex_web/search.py — Busca com índice invertido por prefixo de palavra (Python puro).
+inex_web/search.py — Busca com índice invertido por prefixo de palavra.
 
-Build: ~1.5s para 76k entradas.
+Carrega o idx_busca.parquet pré-computado (gerado por build_index.py).
+Build: ~0.5-1s para 76k entradas (leitura direta, sem JOINs).
 Busca: <5ms (interseção de sets por token prefix).
-
-Não casa substring falso (ex: "usp" não casa "esuspe"),
-pois faz match por início de palavra tokenizada.
 """
 
 import time
 from collections import defaultdict
-from inex_web.db import get_db
+from pathlib import Path
 
+import duckdb
 
-_INDEX: list[dict] = []
+DATA_DIR = Path(__file__).parent.parent / "data"
+IDX_FILE = DATA_DIR / "idx_busca.parquet"
+
+_INDEX: list[tuple] = []
 _PREFIX_MAP: dict[str, set[int]] = defaultdict(set)
 _READY = False
+
+# Campos na ordem da tuple: tipo, co_ies, co_curso, nome, sigla, municipio, uf, org,
+#                            categoria, igc_faixa, igc_continuo, nota, percentil
+_FIELDS = ("tipo", "co_ies", "co_curso", "nome", "sigla", "municipio", "uf", "org",
+            "categoria", "igc_faixa", "igc_continuo", "nota", "percentil")
 
 
 def _tokenize(*fields) -> set[str]:
@@ -31,106 +38,55 @@ def _tokenize(*fields) -> set[str]:
 
 
 def build_index() -> None:
-    """Constrói índice invertido em memória. ~1.5s para 76k docs."""
+    """Carrega idx_busca.parquet e constrói índice invertido. ~0.5-1s para 76k docs."""
     global _INDEX, _PREFIX_MAP, _READY
 
     if _READY:
         return
 
+    if not IDX_FILE.exists():
+        raise FileNotFoundError(
+            f"{IDX_FILE} não encontrado. Rode: python build_index.py"
+        )
+
     start = time.perf_counter()
-    con = get_db()
 
-    # IES
-    ies_rows = con.execute("""
-        SELECT d.co_ies, d.no_ies_atual, h.sg_ies, d.no_municipio,
-               d.sg_uf, d.org_academica_atual, d.categoria_adm_atual,
-               g.igc_faixa, g.igc_continuo
-        FROM dim_ies d
-        LEFT JOIN (
-            SELECT co_ies, sg_ies,
-                   ROW_NUMBER() OVER (PARTITION BY co_ies ORDER BY ano DESC) as rn
-            FROM hist_ies WHERE sg_ies IS NOT NULL
-        ) h ON d.co_ies = h.co_ies AND h.rn = 1
-        LEFT JOIN (
-            SELECT co_ies, igc_faixa, igc_continuo,
-                   ROW_NUMBER() OVER (PARTITION BY co_ies ORDER BY ano DESC) as rn
-            FROM fact_igc
-        ) g ON d.co_ies = g.co_ies AND g.rn = 1
+    con = duckdb.connect(":memory:", read_only=False)
+    rows = con.execute(f"""
+        SELECT tipo, co_ies, co_curso, nome, sigla, municipio, uf, org,
+               categoria, igc_faixa, igc_continuo, nota, percentil
+        FROM read_parquet('{IDX_FILE}')
     """).fetchall()
+    con.close()
 
-    for row in ies_rows:
-        co_ies, nome, sigla, municipio, uf, org, categoria, igc_faixa, igc_continuo = row
+    index = []
+    prefix_map: dict[str, set[int]] = defaultdict(set)
+
+    for row in rows:
+        # row: (tipo, co_ies, co_curso, nome, sigla, municipio, uf, org, ...)
+        nome = row[3]
+        sigla = row[4]
+        municipio = row[5]
+        uf = row[6]
+        org = row[7]
+
         tokens = _tokenize(nome, sigla, municipio, uf, org)
-        idx = len(_INDEX)
-        _INDEX.append({
-            "tipo": "ies",
-            "co_ies": co_ies,
-            "co_curso": None,
-            "tokens": tokens,
-            "nome": nome,
-            "sigla": sigla,
-            "municipio": municipio,
-            "uf": uf,
-            "org": org,
-            "categoria": categoria,
-            "igc_faixa": igc_faixa,
-            "igc_continuo": igc_continuo,
-            "nota": None,
-            "percentil": None,
-        })
+        idx = len(index)
+        index.append(row)
         for tok in tokens:
-            _PREFIX_MAP[tok].add(idx)
+            prefix_map[tok].add(idx)
 
-    # Cursos
-    curso_rows = con.execute("""
-        SELECT cr.co_ies, cr.co_curso, cr.no_curso, cr.no_municipio, cr.sg_uf,
-               d.no_ies_atual, h.sg_ies, d.org_academica_atual,
-               e.nt_ger_media, e.percentil_grupo
-        FROM (
-            SELECT co_ies, co_curso, no_curso, no_municipio, sg_uf,
-                   ROW_NUMBER() OVER (PARTITION BY co_ies, co_curso ORDER BY ano DESC) as rn
-            FROM fact_censo_cursos WHERE no_curso IS NOT NULL
-        ) cr
-        JOIN dim_ies d ON cr.co_ies = d.co_ies
-        LEFT JOIN (
-            SELECT co_ies, sg_ies,
-                   ROW_NUMBER() OVER (PARTITION BY co_ies ORDER BY ano DESC) as rn
-            FROM hist_ies WHERE sg_ies IS NOT NULL
-        ) h ON cr.co_ies = h.co_ies AND h.rn = 1
-        LEFT JOIN (
-            SELECT co_ies, co_curso, nt_ger_media, percentil_grupo,
-                   ROW_NUMBER() OVER (PARTITION BY co_ies, co_curso ORDER BY ano DESC) as rn
-            FROM fact_enade WHERE qt_presentes > 0
-        ) e ON cr.co_ies = e.co_ies AND cr.co_curso = e.co_curso AND e.rn = 1
-        WHERE cr.rn = 1
-    """).fetchall()
-
-    for row in curso_rows:
-        co_ies, co_curso, no_curso, municipio, uf, no_ies, sigla, org, nota, percentil = row
-        tokens = _tokenize(no_curso, no_ies, sigla, municipio, uf)
-        idx = len(_INDEX)
-        _INDEX.append({
-            "tipo": "curso",
-            "co_ies": co_ies,
-            "co_curso": co_curso,
-            "tokens": tokens,
-            "nome": no_curso,
-            "sigla": sigla,
-            "municipio": municipio,
-            "uf": uf,
-            "org": org,
-            "categoria": None,
-            "igc_faixa": None,
-            "igc_continuo": None,
-            "nota": nota,
-            "percentil": percentil,
-        })
-        for tok in tokens:
-            _PREFIX_MAP[tok].add(idx)
+    _INDEX = index
+    _PREFIX_MAP = prefix_map
+    _READY = True
 
     elapsed = time.perf_counter() - start
-    _READY = True
     print(f"Índice de busca: {len(_INDEX):,} entradas, {len(_PREFIX_MAP):,} tokens ({elapsed:.1f}s)")
+
+
+def _row_to_dict(row: tuple) -> dict:
+    """Converte tuple do índice pra dict (usado no retorno)."""
+    return dict(zip(_FIELDS, row))
 
 
 def search(termo: str, limite: int = 10, offset: int = 0, tipo: str | None = None) -> list[dict]:
@@ -169,14 +125,15 @@ def search(termo: str, limite: int = 10, offset: int = 0, tipo: str | None = Non
     results = []
     for idx in result_indices:
         entry = _INDEX[idx]
-        if tipo and entry["tipo"] != tipo:
+        entry_tipo = entry[0]  # tipo
+        if tipo and entry_tipo != tipo:
             continue
         results.append(entry)
 
     results.sort(key=lambda r: (
-        0 if r["tipo"] == "ies" else 1,
-        -(r["igc_faixa"] or 0),
-        -(r["nota"] or 0),
+        0 if r[0] == "ies" else 1,      # tipo
+        -(r[9] or 0),                     # igc_faixa
+        -(r[11] or 0),                    # nota
     ))
 
-    return results[offset:offset + limite]
+    return [_row_to_dict(r) for r in results[offset:offset + limite]]

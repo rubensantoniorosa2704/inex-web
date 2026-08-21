@@ -33,7 +33,7 @@ duckdb.sql("SELECT * FROM 'fact_enade.parquet' WHERE co_ies = 87").show()
 
     <table>
         <thead>
-            <tr><th>Arquivo</th><th>Descrição</th><th>Tamanho</th><th></th></tr>
+            <tr><th>Arquivo</th><th>Descrição</th><th>Tamanho</th><th>SHA-256</th><th></th></tr>
         </thead>
         <tbody>
             {% for a in arquivos %}
@@ -53,6 +53,7 @@ duckdb.sql("SELECT * FROM 'fact_enade.parquet' WHERE co_ies = 87").show()
                     {% endif %}
                 </td>
                 <td>{{ a.tamanho_mb }} MB</td>
+                <td><code title="{{ a.sha256 }}">{{ a.sha256[:12] }}…</code></td>
                 <td><a href="/dados/{{ a.arquivo }}">Download</a></td>
             </tr>
             {% endfor %}

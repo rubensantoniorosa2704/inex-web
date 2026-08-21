@@ -51,7 +51,7 @@ app.jinja_env.globals.update(
     faixa_badge=faixa_badge,
 )
 
-# Construir índice de busca no startup
+# Carregar índice de busca pré-computado (idx_busca.parquet)
 with app.app_context():
     build_index()
 

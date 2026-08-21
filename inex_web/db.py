@@ -316,13 +316,19 @@ def get_curso_perfil(co_ies: int, co_curso: int, ano: int) -> dict | None:
 
 
 def get_dados_disponiveis() -> list[dict]:
-    """Lista parquets disponíveis para download."""
+    """Lista parquets disponíveis para download (com hash SHA-256)."""
+    import hashlib
+
     files = []
     for f in sorted(DATA_DIR.glob("*.parquet")):
+        if f.name == "idx_busca.parquet":
+            continue  # índice interno, não expor para download
         size_mb = f.stat().st_size / 1024 / 1024
+        sha256 = hashlib.sha256(f.read_bytes()).hexdigest()
         files.append({
             "nome": f.stem,
             "arquivo": f.name,
             "tamanho_mb": round(size_mb, 1),
+            "sha256": sha256,
         })
     return files
