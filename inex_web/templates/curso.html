@@ -7,35 +7,62 @@
 {% endblock %}
 
 {% block content %}
-<article>
-    <h1>{{ curso_nome }}</h1>
-    <p class="meta">{{ ies.no_ies_atual }} · {{ ies.no_municipio }}/{{ ies.sg_uf }}</p>
+<article class="curso-page">
+    <header>
+        <h1>{{ curso_nome }}</h1>
+        <p class="meta">
+            {{ ies.no_ies_atual }} ·
+            {{ ies.no_municipio }}/{{ ies.sg_uf }} ·
+            {{ ies.org_academica_atual }}
+            {% if censo_curso %}
+                {% set ultimo_censo = censo_curso[-1] %}
+                {% if ultimo_censo.tp_modalidade_ensino == 1 %}· Presencial{% elif ultimo_censo.tp_modalidade_ensino == 2 %}· EAD{% endif %}
+                {% if ultimo_censo.in_gratuito %}· Gratuito{% endif %}
+            {% endif %}
+        </p>
+    </header>
 
-    {# ── Histórico ENADE ─────────────────────────────────────────── #}
+    {# ── Resumo ENADE ────────────────────────────────────────────── #}
     {% if historico %}
     <section>
-        <h2>Histórico ENADE</h2>
+        <h2>Desempenho no ENADE</h2>
+        {% set ultimo = historico[-1] %}
+        <p class="destaque">
+            <strong>{{ "%.1f"|format(ultimo.nt_ger_media) }}/100</strong>
+            {% if ultimo.percentil_grupo is not none %}
+                — top {{ (100 - ultimo.percentil_grupo)|round|int }}% do Brasil
+            {% endif %}
+            ({{ ultimo.ano }})
+        </p>
+        <p>
+            O ENADE é a prova do MEC aplicada aos formandos. A nota vai de 0 a 100
+            e mostra como os alunos deste curso se saem comparados a todos os outros
+            cursos da mesma área no país.
+            {% if ultimo.qt_presentes %}
+                Em {{ ultimo.ano }}, {{ ultimo.qt_presentes }} alunos participaram da prova.
+            {% endif %}
+        </p>
 
         {% if historico|length > 1 %}
-        {{ line_chart(historico, 'ano', 'nt_ger_media', color='#333', label='Nota geral') }}
+        {{ line_chart(historico, 'ano', 'nt_ger_media', color='#333', label='Nota geral ENADE') }}
         {% endif %}
 
         <details{% if historico|length <= 3 %} open{% endif %}>
-            <summary>Ver tabela</summary>
+            <summary>Ver tabela completa</summary>
             <table>
                 <thead>
                     <tr>
                         <th>Ano</th>
                         <th>Nota Geral</th>
-                        <th>FG</th>
-                        <th>CE</th>
-                        <th>Percentil</th>
+                        <th>Formação Geral</th>
+                        <th>Comp. Específico</th>
+                        <th>Posição</th>
                         <th>Presentes</th>
-                        <th>Participacao</th>
+                        <th>Participação</th>
                     </tr>
                 </thead>
                 <tbody>
-                {% for h in historico %}
+                {% for h in historico|reverse %}
                 <tr>
                     <td>{{ h.ano }}</td>
                     <td><strong>{{ "%.1f"|format(h.nt_ger_media) if h.nt_ger_media else "—" }}</strong></td>
@@ -54,34 +81,199 @@
             </table>
         </details>
     </section>
-    {% elif censo_curso %}
+    {% endif %}
+
+    {# ── CPC ─────────────────────────────────────────────────────── #}
+    {% if cpc %}
     <section>
-        <h2>Dados do Censo</h2>
-        <p class="meta">Este curso ainda nao foi avaliado pelo ENADE.</p>
+        <h2>Nota oficial do MEC (CPC)</h2>
+        {% set ultimo_cpc = cpc[-1] %}
+        <p class="destaque">
+            {% if ultimo_cpc.cpc_faixa %}
+                {{ faixa_badge(ultimo_cpc.cpc_faixa) }}
+                <strong>{{ ultimo_cpc.cpc_faixa }}/5</strong> — {{ ultimo_cpc.ano }}
+            {% else %}
+                <strong>{{ "%.2f"|format(ultimo_cpc.cpc_continuo) }}</strong> (contínuo) — {{ ultimo_cpc.ano }}
+            {% endif %}
+        </p>
+        <p>
+            O CPC (Conceito Preliminar de Curso) é a nota do MEC de 1 a 5.
+            Combina desempenho dos alunos no ENADE, corpo docente
+            (titulação e regime), infraestrutura e organização didática.
+            Cursos com nota 1 ou 2 podem sofrer sanções.
+        </p>
+
+        {% if cpc|length > 1 %}
+        {{ line_chart(cpc, 'ano', 'cpc_continuo', color='#555', label='CPC Contínuo') }}
+        {% endif %}
+
+        {# Radar simplificado: componentes do CPC mais recente #}
+        {% if ultimo_cpc.nota_pad_doutores is not none %}
+        <h3>Componentes da nota ({{ ultimo_cpc.ano }})</h3>
         <table>
-            <thead><tr><th>Ano</th><th>Vagas</th><th>Ingressantes</th><th>Matriculas</th><th>Concluintes</th></tr></thead>
+            <thead><tr><th>Componente</th><th>Nota (0-5)</th></tr></thead>
             <tbody>
-            {% for c in censo_curso %}
-            <tr>
-                <td>{{ c.ano }}</td>
-                <td>{{ c.vagas }}</td>
-                <td>{{ c.ingressantes }}</td>
-                <td>{{ c.matriculas }}</td>
-                <td>{{ c.concluintes }}</td>
-            </tr>
-            {% endfor %}
+                {% if ultimo_cpc.enade_continuo %}<tr><td>Desempenho ENADE</td><td>{{ "%.2f"|format(ultimo_cpc.enade_continuo) }}</td></tr>{% endif %}
+                {% if ultimo_cpc.nota_pad_idd %}<tr><td>Valor agregado (IDD)</td><td>{{ "%.2f"|format(ultimo_cpc.nota_pad_idd) }}</td></tr>{% endif %}
+                {% if ultimo_cpc.nota_pad_doutores %}<tr><td>Doutores</td><td>{{ "%.2f"|format(ultimo_cpc.nota_pad_doutores) }}</td></tr>{% endif %}
+                {% if ultimo_cpc.nota_pad_mestres %}<tr><td>Mestres</td><td>{{ "%.2f"|format(ultimo_cpc.nota_pad_mestres) }}</td></tr>{% endif %}
+                {% if ultimo_cpc.nota_pad_regime %}<tr><td>Regime integral/parcial</td><td>{{ "%.2f"|format(ultimo_cpc.nota_pad_regime) }}</td></tr>{% endif %}
+                {% if ultimo_cpc.nota_pad_infra %}<tr><td>Infraestrutura</td><td>{{ "%.2f"|format(ultimo_cpc.nota_pad_infra) }}</td></tr>{% endif %}
+                {% if ultimo_cpc.nota_pad_org_didatica %}<tr><td>Organização didática</td><td>{{ "%.2f"|format(ultimo_cpc.nota_pad_org_didatica) }}</td></tr>{% endif %}
             </tbody>
         </table>
+        {% endif %}
     </section>
     {% endif %}
 
-    {# ── Perfil dos alunos ────────────────────────────────────────── #}
+    {# ── IDD ─────────────────────────────────────────────────────── #}
+    {% if idd %}
+    <section>
+        <h2>Valor agregado (IDD)</h2>
+        {% set ultimo_idd = idd[-1] %}
+        <p class="destaque">
+            {% if ultimo_idd.idd_faixa %}
+                {{ faixa_badge(ultimo_idd.idd_faixa) }}
+                <strong>{{ ultimo_idd.idd_faixa }}/5</strong> — {{ ultimo_idd.ano }}
+            {% else %}
+                <strong>{{ "%.2f"|format(ultimo_idd.idd_continuo) }}</strong> (contínuo) — {{ ultimo_idd.ano }}
+            {% endif %}
+        </p>
+        <p>
+            O IDD mede quanto a instituição agrega ao aluno: compara o desempenho
+            observado no ENADE com o esperado dado o perfil dos ingressantes.
+            Um IDD alto significa que o curso fez diferença na formação.
+        </p>
+
+        {% if idd|length > 1 %}
+        {{ line_chart(idd, 'ano', 'idd_continuo', color='#333', label='IDD Contínuo') }}
+        {% endif %}
+
+        <details>
+            <summary>Ver tabela</summary>
+            <table>
+                <thead><tr><th>Ano</th><th>IDD Contínuo</th><th>Faixa</th><th>Participantes</th></tr></thead>
+                <tbody>
+                {% for i in idd|reverse %}
+                <tr>
+                    <td>{{ i.ano }}</td>
+                    <td>{{ "%.3f"|format(i.idd_continuo) if i.idd_continuo else "—" }}</td>
+                    <td>{{ faixa_badge(i.idd_faixa) if i.idd_faixa else "—" }}</td>
+                    <td>{{ i.qt_participantes }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </details>
+    </section>
+    {% endif %}
+
+    {# ── Censo: tamanho e evolução ────────────────────────────────── #}
+    {% if censo_curso %}
+    <section>
+        <h2>Tamanho e evolução</h2>
+        {% set ultimo_censo = censo_curso[-1] %}
+        <p>
+            Em {{ ultimo_censo.ano }}: <strong>{{ ultimo_censo.qt_mat }}</strong> alunos matriculados,
+            {{ ultimo_censo.qt_ing }} ingressantes,
+            {{ ultimo_censo.qt_conc }} concluintes,
+            {{ ultimo_censo.qt_vg_total }} vagas ofertadas.
+        </p>
+
+        {% if censo_curso|length > 1 %}
+        {{ line_chart(censo_curso, 'ano', 'qt_mat', color='#333', label='Matrículas') }}
+        {% endif %}
+
+        <details>
+            <summary>Ver tabela completa</summary>
+            <table>
+                <thead><tr><th>Ano</th><th>Vagas</th><th>Ingressantes</th><th>Matrículas</th><th>Concluintes</th></tr></thead>
+                <tbody>
+                {% for c in censo_curso|reverse %}
+                <tr>
+                    <td>{{ c.ano }}</td>
+                    <td>{{ c.qt_vg_total }}</td>
+                    <td>{{ c.qt_ing }}</td>
+                    <td>{{ c.qt_mat }}</td>
+                    <td>{{ c.qt_conc }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </details>
+    </section>
+
+    {# ── Diversidade ──────────────────────────────────────────────── #}
+    {% if ultimo_censo.qt_mat and ultimo_censo.qt_mat > 0 %}
+    <section>
+        <h2>Perfil dos matriculados ({{ ultimo_censo.ano }})</h2>
+
+        {# Gênero #}
+        {% if ultimo_censo.qt_mat_fem is not none and ultimo_censo.qt_mat_masc is not none %}
+        {% set total = ultimo_censo.qt_mat_fem + ultimo_censo.qt_mat_masc %}
+        {% if total > 0 %}
+        <h3>Gênero</h3>
+        {% set pct_fem = (ultimo_censo.qt_mat_fem / total * 100)|round|int %}
+        {{ stacked_bar([
+            ('Feminino', ultimo_censo.qt_mat_fem / total, '#555'),
+            ('Masculino', ultimo_censo.qt_mat_masc / total, '#aaa')
+        ]) }}
+        <p class="meta">{{ pct_fem }}% feminino, {{ 100 - pct_fem }}% masculino</p>
+        {% endif %}
+        {% endif %}
+
+        {# Cor/raça #}
+        {% set raca_segs = [] %}
+        {% if ultimo_censo.qt_mat_branca %}{% set _ = raca_segs.append(('Branca', ultimo_censo.qt_mat_branca, '#bbb')) %}{% endif %}
+        {% if ultimo_censo.qt_mat_parda %}{% set _ = raca_segs.append(('Parda', ultimo_censo.qt_mat_parda, '#777')) %}{% endif %}
+        {% if ultimo_censo.qt_mat_preta %}{% set _ = raca_segs.append(('Preta', ultimo_censo.qt_mat_preta, '#333')) %}{% endif %}
+        {% if ultimo_censo.qt_mat_amarela %}{% set _ = raca_segs.append(('Amarela', ultimo_censo.qt_mat_amarela, '#ddd')) %}{% endif %}
+        {% if ultimo_censo.qt_mat_indigena %}{% set _ = raca_segs.append(('Indígena', ultimo_censo.qt_mat_indigena, '#999')) %}{% endif %}
+        {% if ultimo_censo.qt_mat_cornd %}{% set _ = raca_segs.append(('Não declarada', ultimo_censo.qt_mat_cornd, '#eee')) %}{% endif %}
+
+        {% set total_raca = raca_segs|sum(attribute='1') if raca_segs else 0 %}
+        {% if total_raca > 0 %}
+        <h3>Cor/Raça</h3>
+        {% set raca_norm = [] %}
+        {% for label, qt, cor in raca_segs %}
+            {% set _ = raca_norm.append((label, qt / total_raca, cor)) %}
+        {% endfor %}
+        {{ stacked_bar(raca_norm) }}
+        <ul class="legend">
+            {% for label, qt, cor in raca_segs %}
+            {% if qt / total_raca > 0.02 %}
+            <li><span class="swatch" style="background:{{ cor }}"></span> {{ label }}: {{ "%.0f"|format(qt / total_raca * 100) }}%</li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {# Financiamento #}
+        {% set fies = ultimo_censo.qt_mat_fies or 0 %}
+        {% set prouni_int = ultimo_censo.qt_mat_prouni_int or 0 %}
+        {% set prouni_parc = ultimo_censo.qt_mat_prouni_parc or 0 %}
+        {% set financiados = fies + prouni_int + prouni_parc %}
+        {% if financiados > 0 %}
+        <h3>Financiamento estudantil</h3>
+        <p>
+            {{ financiados }} alunos ({{ "%.0f"|format(financiados / ultimo_censo.qt_mat * 100) }}%) com auxílio:
+            {% if fies %}FIES: {{ fies }}{% endif %}
+            {% if prouni_int %}· ProUni integral: {{ prouni_int }}{% endif %}
+            {% if prouni_parc %}· ProUni parcial: {{ prouni_parc }}{% endif %}
+        </p>
+        {% endif %}
+    </section>
+    {% endif %}
+    {% endif %}
+
+    {# ── Perfil socioeconômico (questionário ENADE) ───────────────── #}
     {% if perfil %}
     <section>
-        <h2>Perfil dos Estudantes ({{ historico[-1].ano }})</h2>
+        <h2>Perfil socioeconômico dos formandos ({{ historico[-1].ano }})</h2>
+        <p class="meta">Baseado no questionário respondido pelos alunos no ENADE.</p>
 
         {# Renda #}
-        {% set renda_labels = {'A': 'Ate 1.5 SM', 'B': '1.5 a 3 SM', 'C': '3 a 4.5 SM', 'D': '4.5 a 6 SM', 'E': '6 a 10 SM', 'F': '10 a 30 SM', 'G': 'Acima 30 SM'} %}
+        {% set renda_labels = {'A': 'Até 1,5 SM', 'B': '1,5 a 3 SM', 'C': '3 a 4,5 SM', 'D': '4,5 a 6 SM', 'E': '6 a 10 SM', 'F': '10 a 30 SM', 'G': 'Acima de 30 SM'} %}
         {% set renda_cores = ['#1a1a1a', '#3d3d3d', '#5c5c5c', '#7a7a7a', '#999999', '#b5b5b5', '#d0d0d0'] %}
         {% set renda_segs = [] %}
         {% for letra in ['A','B','C','D','E','F','G'] %}
@@ -104,7 +296,7 @@
         {% endif %}
 
         {# Trabalho #}
-        {% set trabalho_labels = {'A': 'Nao trabalha', 'B': 'Eventualmente', 'C': 'Ate 20h/sem', 'D': '21-39h/sem', 'E': '40h+ por semana'} %}
+        {% set trabalho_labels = {'A': 'Não trabalha', 'B': 'Eventualmente', 'C': 'Até 20h/sem', 'D': '21-39h/sem', 'E': '40h+ por semana'} %}
         {% set trabalho_cores = ['#b5b5b5', '#999999', '#7a7a7a', '#4a4a4a', '#1a1a1a'] %}
         {% set trab_segs = [] %}
         {% for letra in ['A','B','C','D','E'] %}
@@ -115,7 +307,7 @@
         {% endfor %}
 
         {% if trab_segs %}
-        <h3>Situacao de trabalho</h3>
+        <h3>Situação de trabalho</h3>
         {{ stacked_bar(trab_segs) }}
         <ul class="legend">
             {% for label, prop, cor in trab_segs %}
@@ -127,7 +319,7 @@
         {% endif %}
 
         {# Escola #}
-        {% set escola_labels = {'A': 'Toda publica', 'B': 'Toda privada', 'C': 'Maior parte publica', 'D': 'Maior parte privada', 'E': 'Metade em cada'} %}
+        {% set escola_labels = {'A': 'Toda pública', 'B': 'Toda privada', 'C': 'Maior parte pública', 'D': 'Maior parte privada', 'E': 'Metade em cada'} %}
         {% set escola_cores = ['#1a1a1a', '#7a7a7a', '#3d3d3d', '#999999', '#b5b5b5'] %}
         {% set escola_segs = [] %}
         {% for letra in ['A','B','C','D','E'] %}
@@ -138,7 +330,7 @@
         {% endfor %}
 
         {% if escola_segs %}
-        <h3>Ensino Medio</h3>
+        <h3>Ensino Médio</h3>
         {{ stacked_bar(escola_segs) }}
         <ul class="legend">
             {% for label, prop, cor in escola_segs %}
@@ -148,6 +340,13 @@
             {% endfor %}
         </ul>
         {% endif %}
+    </section>
+    {% endif %}
+
+    {# ── Sem dados ENADE ─────────────────────────────────────────── #}
+    {% if not historico and not cpc and not idd %}
+    <section>
+        <p class="meta">Este curso ainda não foi avaliado pelo ENADE/MEC.</p>
     </section>
     {% endif %}
 </article>

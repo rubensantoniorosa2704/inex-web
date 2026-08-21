@@ -268,6 +268,44 @@ def get_curso(co_ies: int, co_curso: int) -> list[dict]:
     """, [co_ies, co_curso])
 
 
+def get_curso_cpc(co_ies: int, co_curso: int) -> list[dict]:
+    """Histórico de CPC de um curso."""
+    return query("""
+        SELECT ano, cpc_continuo, cpc_faixa, enade_continuo,
+               nota_pad_doutores, nota_pad_mestres, nota_pad_regime,
+               nota_pad_infra, nota_pad_org_didatica, nota_pad_idd,
+               area_avaliacao
+        FROM fact_cpc
+        WHERE co_ies = $1 AND co_curso = $2
+        ORDER BY ano
+    """, [co_ies, co_curso])
+
+
+def get_curso_idd(co_ies: int, co_curso: int) -> list[dict]:
+    """Histórico de IDD de um curso."""
+    return query("""
+        SELECT ano, idd_continuo, idd_faixa, qt_participantes
+        FROM fact_idd
+        WHERE co_ies = $1 AND co_curso = $2
+        ORDER BY ano
+    """, [co_ies, co_curso])
+
+
+def get_curso_censo(co_ies: int, co_curso: int) -> list[dict]:
+    """Evolução de vagas, matrículas e perfil do curso no Censo."""
+    return query("""
+        SELECT ano, qt_vg_total, qt_ing, qt_mat, qt_conc,
+               qt_mat_fem, qt_mat_masc,
+               qt_mat_branca, qt_mat_preta, qt_mat_parda,
+               qt_mat_amarela, qt_mat_indigena, qt_mat_cornd,
+               qt_mat_fies, qt_mat_prouni_int, qt_mat_prouni_parc,
+               tp_grau_academico, tp_modalidade_ensino, in_gratuito
+        FROM fact_censo_cursos
+        WHERE co_ies = $1 AND co_curso = $2
+        ORDER BY ano
+    """, [co_ies, co_curso])
+
+
 def get_curso_perfil(co_ies: int, co_curso: int, ano: int) -> dict | None:
     """Perfil socioeconômico de um curso em um ano."""
     rows = query("""

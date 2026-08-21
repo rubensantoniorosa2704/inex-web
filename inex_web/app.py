@@ -310,7 +310,7 @@ def pagina_curso(co_ies: int, co_curso: int):
     historico = get_curso(co_ies, co_curso)
 
     # Nome do curso (via censo)
-    from inex_web.db import query as db_query
+    from inex_web.db import query as db_query, get_curso_cpc, get_curso_idd, get_curso_censo
     nome_rows = db_query("""
         SELECT no_curso FROM fact_censo_cursos
         WHERE co_ies = $1 AND co_curso = $2
@@ -318,19 +318,14 @@ def pagina_curso(co_ies: int, co_curso: int):
     """, [co_ies, co_curso])
     curso_nome = nome_rows[0]["no_curso"] if nome_rows else f"Curso {co_curso}"
 
-    # Se não tem ENADE, mostrar dados do censo ao menos
-    censo_curso = None
-    if not historico:
-        censo_rows = db_query("""
-            SELECT ano, qt_vg_total as vagas, qt_ing as ingressantes,
-                   qt_mat as matriculas, qt_conc as concluintes
-            FROM fact_censo_cursos
-            WHERE co_ies = $1 AND co_curso = $2
-            ORDER BY ano
-        """, [co_ies, co_curso])
-        censo_curso = censo_rows if censo_rows else None
-        if not censo_curso:
-            abort(404)
+    # CPC e IDD do curso
+    cpc = get_curso_cpc(co_ies, co_curso)
+    idd = get_curso_idd(co_ies, co_curso)
+    censo_curso = get_curso_censo(co_ies, co_curso)
+
+    # Se não tem nenhum dado, 404
+    if not historico and not censo_curso:
+        abort(404)
 
     # Pegar perfil do ano mais recente
     perfil = None
@@ -344,8 +339,10 @@ def pagina_curso(co_ies: int, co_curso: int):
         co_curso=co_curso,
         curso_nome=curso_nome,
         historico=historico,
-        perfil=perfil,
+        cpc=cpc,
+        idd=idd,
         censo_curso=censo_curso,
+        perfil=perfil,
     )
 
 
